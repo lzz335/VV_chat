@@ -4,7 +4,7 @@
 
 
 
-The meme dataset associated with Zhang Weiwei used in this project originates from publicly available content on [Zhihu](https://www.zhihu.com/question/656505859/answer/55843704436). **This is a third-party resource not affiliated with or endorsed by this project. This project only uses this dataset as a demonstration of the algorithm's effectiveness** If you are a rights holder and believe any content requires removal, please promptly contact us via [insert contact method].  
+The meme dataset associated with Zhang Weiwei used in this project originates from publicly available content on [Zhihu](https://www.zhihu.com/question/656505859/answer/55843704436). **This is a third-party resource not affiliated with or endorsed by this project. This project only uses this dataset as a demonstration of the algorithm's effectiveness** If you are a rights holder and believe any content requires removal, please promptly contact us via neuliuzz@163.com.  
 
 
 **The starting point of this project comes from the admiration for Teacher Zhang**
