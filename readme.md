@@ -10,7 +10,7 @@
 
 ## 技术规格  
 
-- 采用**ChromaDB**作为数据库系统，需配置可用的**C++编译环境**。配置参考：[C++环境指南](https://blog.csdn.net/...)  
+- 采用**ChromaDB**作为数据库系统，需配置可用的**C++编译环境**。配置参考：[C++环境指南](https://blog.csdn.net/OkGogooXSailboat/article/details/137013899)
 - 文本嵌入处理使用北京智源研究院开发的**BAAI/bge-large-zh-v1.5**模型  
 - 界面实现基于**Gradio**框架  
 
@@ -75,7 +75,7 @@ The meme dataset associated with Zhang Weiwei used in this project originates fr
 
 
 
-- This project utilizes **ChromaDB** as its database system. A functional **C++ compilation environment** is required for operation. Configuration reference: [C++ Environment Guide](https://blog.csdn.net/...)  
+- This project utilizes **ChromaDB** as its database system. A functional **C++ compilation environment** is required for operation. Configuration reference: [C++ Environment Guide](https://blog.csdn.net/OkGogooXSailboat/article/details/137013899)
 
 - Text embedding processing employs the **bgaaai/bge-large-zh-v1.5** model developed by Beijing Academy of Artificial Intelligence.  
 
