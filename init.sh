@@ -9,5 +9,3 @@ KEY="Your key" # example: "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 MODEL="gpt-4o-mini"
 
 python train_database.py "$FOLDER_PATH" "$DATABASE_PATH" "$BATCH_SIZE"
-
-python demo.py --chroma_path "$DATABASE_PATH" --openai_base_url "$URL_PATH" --openai_api_key "$KEY" --model "$MODEL"
