@@ -3,35 +3,51 @@ import gradio as gr
 import chromadb
 from FlagEmbedding import FlagModel
 from openai import OpenAI
-import argparse
+import os
 
-# 创建ArgumentParser对象
-parser = argparse.ArgumentParser(description='RAG Application with Gradio')
-parser.add_argument('--chroma_path', type=str, required=True, help='Path to ChromaDB database')
-parser.add_argument('--collection_name', type=str, default='vv_chat', help='Name of the collection in ChromaDB')
-parser.add_argument('--openai_base_url', type=str, required=True, help='Base URL for OpenAI API')
-parser.add_argument('--openai_api_key', type=str, required=True, help='API key for OpenAI')
-parser.add_argument('--model', type=str, required=True, help='model name')
-# 解析命令行参数
-args = parser.parse_args()
-
-# 使用解析出的参数初始化ChromaDB和OpenAI客户端
+# Hardcoded ChromaDB paths
+CHROMA_PATH = "C:/NeurIPS2025/open source/database"  # Replace with your actual path
+COLLECTION_NAME = "vv_chat"
+MODEL_LIST = ["gpt-4o-mini", "deepseek-r1:1.5b", "gemma3:latest"]
+# Initialize components
 embeddings_model = FlagModel('BAAI/bge-large-zh-v1.5',
                              query_instruction_for_retrieval="为这个句子生成表示以用于检索相关文章：",
                              use_fp16=True)
 
-chroma_client = chromadb.PersistentClient(path=args.chroma_path)
-collection = chroma_client.get_collection(args.collection_name)
+chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
+collection = chroma_client.get_collection(COLLECTION_NAME)
 
-client = OpenAI(
-    base_url=args.openai_base_url,
-    api_key=args.openai_api_key
-)
+# Data file path
+DATA_FILE = "data.txt"
 
 
-def generate_response(query):
+def load_api_data():
+    """Load API URL and key from data file if exists"""
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r') as f:
+            lines = f.readlines()
+            if len(lines) >= 2:
+                return lines[0].strip(), lines[1].strip()
+    return "", ""
+
+
+def save_api_data(url, api_key):
+    """Save API URL and key to data file"""
+    with open(DATA_FILE, 'w') as f:
+        f.write(f"{url}\n{api_key}")
+
+
+# Initialize OpenAI client with loaded data or empty
+openai_url, openai_key = load_api_data()
+client = OpenAI(base_url=openai_url, api_key=openai_key) if openai_url and openai_key else None
+
+
+def generate_response(query, model_name):
+    if not client:
+        raise gr.Error("请先设置OpenAI API URL和密钥")
+
     completion_instance = client.chat.completions.create(
-        model=args.model,
+        model=model_name,
         messages=[{"role": "user", "content": query}],
         temperature=0.5,
         top_p=1,
@@ -47,26 +63,29 @@ def rag(query, recall_length):
         n_results=recall_length
     )
     figure_files = [metadata["path"] for metadata in recall["metadatas"][0]]
-    # print(figure_files, recall["documents"][0])
     return figure_files, recall["documents"][0]
 
 
 def extract_answer(input_text):
+    print(f"input:{input_text}")
+    print(f"typing:{type(input_text)}")
+    # 使用正则表达式查找<answer>标签内容
     match = re.search(r'<answer>(.*?)</answer>', input_text)
     if match:
-        return match.group(1)
+        return match.group(1)  # 返回标签内的内容
     return None
 
 
 def get_figure_path(answer, figure_list, abc_dict):
     figures = []
+    print("answers{}".format(answer))
     for index, alphabeta in enumerate(abc_dict):
         if alphabeta in answer:
             figures.append(figure_list[index])
     return figures
 
 
-def judge(query, figure_list, documents_list):
+def judge(query, figure_list, documents_list, model_name):
     abc_dict = list(map(chr, range(65, 65 + len(documents_list))))
     query_for_gpt = '''
 **任务说明**
@@ -109,40 +128,113 @@ C. 冰川融化对比卫星图
         query=query,
         image_options="\n".join([f"{chr(65 + i)}. {desc}" for i, desc in enumerate(documents_list)])
     )
-    res = generate_response(query_for_gpt)
+    res = generate_response(query_for_gpt, model_name)
+    print(res)
     answer = extract_answer(res)
-    # print(res)
+    print(answer)
+    return res, get_figure_path(answer, figure_list, abc_dict)
 
-    return get_figure_path(answer, figure_list, abc_dict)
 
-
-def process_input(query, recall_length):
+def process_input(query, recall_length, model_name):
     rag_images, documents_list = rag(query, recall_length)
-    judgement_image = judge(query, rag_images, documents_list)
-
-    return {
-        gallery: rag_images,
-        judgement_output: judgement_image
-    }
+    print(rag_images, documents_list)
+    reasoning, judgement_image = judge(query, rag_images, documents_list, model_name)
+    return reasoning, rag_images, judgement_image
 
 
-with gr.Blocks() as demo:
-    with gr.Row():
-        with gr.Column(scale=3):
-            input_box = gr.Textbox(label="输入查询内容")
-            submit_btn = gr.Button("提交")
+def update_api_settings(api_url, api_key):
+    save_api_data(api_url, api_key)
+    global client
+    client = OpenAI(base_url=api_url, api_key=api_key)
+    return "设置已保存！"
 
+
+with gr.Blocks(theme=gr.themes.Soft(), title="表情包推荐系统") as demo:
+    # API Settings Section
+    with gr.Accordion("API 设置", open=False):
+        with gr.Row():
             with gr.Column():
-                judgement_output = gr.Gallery(columns=1, height="auto", label="推荐插入表情包")
-        with gr.Column(scale=2):
-            gr.Markdown("## 检索到的图片")
-            gallery = gr.Gallery(columns=3, height="auto")
-            recall_slider = gr.Slider(minimum=2, maximum=20, step=1, value=5, label="召回长度")
+                api_url = gr.Textbox(label="API URL",
+                                     value=load_api_data()[0],
+                                     placeholder="https://api.openai.com/v1")
+                api_key = gr.Textbox(label="API Key",
+                                     type="password",
+                                     value=load_api_data()[1],
+                                     placeholder="输入你的API密钥")
+                model_selector = gr.Dropdown(MODEL_LIST,
+                                             label="模型选择",
+                                             value="gpt-4o-mini",
+                                             info="选择要使用的语言模型")
+                with gr.Row():
+                    save_btn = gr.Button("保存设置", variant="primary")
+                    save_status = gr.Textbox(label="状态",
+                                             interactive=False,
+                                             show_label=False)
+
+    # Main Interface
+    with gr.Row():
+        # Left Main Column (now contains reasoning + related images)
+        with gr.Column(scale=4):
+            # Input Area
+            with gr.Group():
+                input_box = gr.Textbox(label="输入查询内容",
+                                       placeholder="输入你想表达的情绪或场景...",
+                                       lines=3,
+                                       max_lines=6)
+                with gr.Row():
+                    submit_btn = gr.Button("生成推荐", variant="primary")
+                    clear_btn = gr.Button("清空")
+
+            # Split left column into two sub-columns
+            with gr.Row():
+                # Left sub-column: Reasoning Process
+                with gr.Column(scale=1):
+                    reasoning_box = gr.Textbox(label="推理过程",
+                                               lines=12,
+                                               max_lines=20,
+                                               interactive=False)
+
+                # Right sub-column: Related Images (previously gallery)
+
+                with gr.Column(scale=1):
+                    judgement_output = gr.Gallery(label="推荐表情包",
+                                                  columns=3,
+                                                  height=600,
+                                                  object_fit="contain")
+
+        # Right Column: Meme Recommendations (now moved here)
+        with gr.Column(scale=3):
+            gallery = gr.Gallery(label="直接检索的文件结果",
+                                 columns=2,
+                                 height=500,
+                                 object_fit="cover")
+
+            with gr.Accordion("检索设置", open=False):
+                recall_slider = gr.Slider(minimum=2,
+                                          maximum=20,
+                                          step=1,
+                                          value=5,
+                                          label="召回数量")
+
+    # Event handlers (unchanged)
+    save_btn.click(
+        fn=update_api_settings,
+        inputs=[api_url, api_key],
+        outputs=[save_status]
+    ).then(
+        fn=lambda: gr.Info("API设置已保存"),
+        outputs=[]
+    )
 
     submit_btn.click(
         fn=process_input,
-        inputs=[input_box, recall_slider],
-        outputs=[gallery, judgement_output]
+        inputs=[input_box, recall_slider, model_selector],
+        outputs=[reasoning_box, gallery, judgement_output]
+    )
+
+    clear_btn.click(
+        fn=lambda: [None, None, None],
+        outputs=[input_box, reasoning_box, judgement_output]
     )
 
 if __name__ == "__main__":
