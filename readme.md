@@ -11,7 +11,7 @@
 ## 技术规格  
 
 - 采用**ChromaDB**作为数据库系统，需配置可用的**C++编译环境**。配置参考：[C++环境指南](https://blog.csdn.net/...)  
-- 文本嵌入处理使用北京智源研究院开发的**bgaaai/bge-large-zh-v1.5**模型  
+- 文本嵌入处理使用北京智源研究院开发的**BAAI/bge-large-zh-v1.5**模型  
 - 界面实现基于**Gradio**框架  
 
 ## 使用说明  
@@ -35,7 +35,8 @@
 
 ## 示例输出  
 
-[![pE6KVG4.png](https://s21.ax1x.com/2025/04/03/pE6KVG4.png)](https://imgse.com/i/pE6KVG4)  
+[![pEcOTH0.png](https://s21.ax1x.com/2025/04/07/pEcOTH0.png)](https://imgse.com/i/pEcOTH0)
+[![pEcOoBq.jpg](https://s21.ax1x.com/2025/04/07/pEcOoBq.jpg)](https://imgse.com/i/pEcOoBq)
 
 ## 许可与免责声明  
 
