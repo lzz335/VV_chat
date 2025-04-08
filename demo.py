@@ -8,7 +8,7 @@ import os
 # Hardcoded ChromaDB paths
 CHROMA_PATH = "C:/NeurIPS2025/open source/database"  # Replace with your actual path
 COLLECTION_NAME = "vv_chat"
-MODEL_LIST = ["gpt-4o-mini", "deepseek-r1:1.5b", "gemma3:latest"]
+MODEL_LIST = ["gpt-4o-mini", "deepseek-r1:1.5b", "gemma3:latest", "gpt-4o", "gpt4", "deepseek-v3"]
 # Initialize components
 embeddings_model = FlagModel('BAAI/bge-large-zh-v1.5',
                              query_instruction_for_retrieval="为这个句子生成表示以用于检索相关文章：",
@@ -67,8 +67,6 @@ def rag(query, recall_length):
 
 
 def extract_answer(input_text):
-    print(f"input:{input_text}")
-    print(f"typing:{type(input_text)}")
     # 使用正则表达式查找<answer>标签内容
     match = re.search(r'<answer>(.*?)</answer>', input_text)
     if match:
@@ -78,7 +76,6 @@ def extract_answer(input_text):
 
 def get_figure_path(answer, figure_list, abc_dict):
     figures = []
-    print("answers{}".format(answer))
     for index, alphabeta in enumerate(abc_dict):
         if alphabeta in answer:
             figures.append(figure_list[index])
@@ -129,15 +126,12 @@ C. 冰川融化对比卫星图
         image_options="\n".join([f"{chr(65 + i)}. {desc}" for i, desc in enumerate(documents_list)])
     )
     res = generate_response(query_for_gpt, model_name)
-    print(res)
     answer = extract_answer(res)
-    print(answer)
     return res, get_figure_path(answer, figure_list, abc_dict)
 
 
 def process_input(query, recall_length, model_name):
     rag_images, documents_list = rag(query, recall_length)
-    print(rag_images, documents_list)
     reasoning, judgement_image = judge(query, rag_images, documents_list, model_name)
     return reasoning, rag_images, judgement_image
 
